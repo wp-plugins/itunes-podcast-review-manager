@@ -3,7 +3,7 @@
 Plugin Name: iTunes Podcast Review Manager
 Plugin URI: http://podwp.com/plugins/itunes-podcast-review-manager
 Description: Gathers all of your international podcast reviews from iTunes and displays them in a table. Upcoming features: column sorting, multiple podcasts, caching. Possible features: rotating widget, email notifications for new reviews.
-Version: 0.1
+Version: 1.0
 Author: Doug Yuen
 Author URI: http://podwp.com
 License: GPLv2
@@ -247,7 +247,7 @@ function podwp_iprm_plugin_main() {
 		$retrieved_summary = FALSE;
 		foreach ( $country_codes as $item ) {
 			$country_code = $item['code'];
-			$url_xml = 'http://itunes.apple.com/' . $country_code . '/rss/customerreviews/id=' . $id . '/xml';
+			$url_xml = 'https://itunes.apple.com/' . $country_code . '/rss/customerreviews/id=' . $id . '/xml';
 			$itunes_xml = wp_remote_get( $url_xml );
 			$itunes_json = json_encode( $itunes_xml );
 			$data2 = json_decode( $itunes_json, TRUE );

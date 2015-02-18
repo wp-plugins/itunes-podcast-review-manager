@@ -5,15 +5,15 @@ Author URI: http://podwp.com
 Plugin URI: http://podwp.com/plugins/itunes-podcast-review-manager
 Tags: itunes, podcast, reviews
 Requires at least: 4.0
-Tested up to: 4.0.1
-Stable tag: 0.1
+Tested up to: 4.1
+Stable tag: 1.0
 License: GPLv2 or later
 
 Gathers all of your international podcast reviews from iTunes and displays them in a table.
 
 == Description ==
 
-Gathers all of your international podcast reviews from iTunes and displays them in a table. 
+Gathers all of your international podcast reviews from iTunes and displays them in a table. Note: sometimes the iTunes feeds get "stuck" and you will have to reload the page another time.
 
 Upcoming features: column sorting, multiple podcasts, caching.
 
@@ -40,8 +40,11 @@ Plugin page: [http://podwp.com/plugins/itunes-podcast-review-manager](http://pod
 
 == Changelog ==
 
+= 1.0 =
+* Changed iTunes feed URLs to use https.
+
 = 0.1 =
-* Initial release
+* Initial release.
 
 == Upgrade Notice ==
 
