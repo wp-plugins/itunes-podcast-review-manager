@@ -2,334 +2,219 @@
 /*
 Plugin Name: iTunes Podcast Review Manager
 Plugin URI: http://podwp.com/plugins/itunes-podcast-review-manager
-Description: Gathers all of your international podcast reviews from iTunes and displays them in a table. Upcoming features: column sorting, multiple podcasts, caching. Possible features: rotating widget, email notifications for new reviews.
-Version: 1.0
+Description: Gathers all of your international podcast reviews from iTunes and displays them in a table. The plugin checks for new reviews in the background every 4 hours. Note: sometimes the iTunes feeds for certain countries are unreachable, and you will have to click the button to manually check for new reviews.
+Version: 1.1
 Author: Doug Yuen
 Author URI: http://podwp.com
 License: GPLv2
 */
 
-add_action( 'admin_menu', 'podwp_iprm_plugin_menu' );
-
-function podwp_iprm_get_contents_inside_tag( $string, $opening_tag, $closing_tag ) {
-	$pos1 = strpos( $string, $opening_tag );
-	$pos2 = strpos( $string, $closing_tag );
-	if ( $pos1 !== FALSE and $pos2 !== FALSE ) {
-		return substr( $string, ( $pos1 + strlen( $opening_tag ) ), ( $pos2 - $pos1 - strlen( $opening_tag ) ) );
-	}
-	else {
-		return '';
-	}
+require_once( dirname(__FILE__) . '/includes/utility-functions.php' );
+add_action( 'admin_menu', 'iprm_plugin_menu' );
+add_filter( 'cron_schedules', 'iprm_cron_add_every_four_hours' );
+add_action( 'iprm_schedule', 'iprm_get_itunes_feed_contents' );
+/* SCHEDULE A CRON JOB TO CHECK FOR REVIEWS EVERY 4 HOURS */
+if ( !wp_next_scheduled( 'iprm_schedule' ) ) {
+	wp_schedule_event( time(), 'four_hours', 'iprm_schedule' );
 }
-function podwp_iprm_plugin_main() {
-	if ( !current_user_can( 'manage_options' ) )  {
-		wp_die( __( 'You do not have sufficient permissions to access this page.' ) );
+
+function iprm_display_reviews( $reviews ) {
+	$review_number = 0;
+	$output = '';
+	$rating_total = 0;
+	/* CHECKS TO MAKE SURE ITUNES PODCAST URL IS DEFINED */
+	if ( get_option( 'iprm_itunes_url' ) ) {
+		/* DISPLAY HEADING AND TABLE */
+		$output .= '<h2>Your International iTunes Podcast Reviews</h2><br />';
+		/* DISPLAY PODCAST INFO */
+		$output .= '<table border="1" cellpadding="10" cellspacing="0" style="background: #fefefe; max-width: 1200px;"><tr><td><img src="' . get_option( 'iprm_feed_image' ) . '" /></td><td><h3>' . get_option( 'iprm_feed_name' ) . '</h3>' .  get_option( 'iprm_feed_artist' ) . '<br /><br /></td><td width="50%">' . get_option( 'iprm_feed_summary' ) . '</td></tr></table><br />';
+		/* GET REVIEW DATE AND COUNTRY FOR SORTING */
+		foreach ( $reviews as $key => $row ) {
+		    $review_date[$key]  = $row['review_date'];
+		    $country[$key] = $row['country'];
+		}
+		/* SORT REVIEWS BY DATE DESCENDING, THEN COUNTRY DESCENDING */
+		array_multisort( $review_date, SORT_DESC, $country, SORT_DESC, $reviews );
+		/* GENERATES TABLE ROWS FOR ALL REVIEWS */
+		$table_body_output = '';
+		foreach( $reviews as $review ) {
+			$review_number++;
+			$table_body_output .= '<tr>';
+			$table_body_output .= '<td>' . $review_number . '</td>';
+			$table_body_output .= '<td>';
+			if ( strlen( $review['country'] ) == 2 ) {
+				$table_body_output .= iprm_get_country_codes( $review['country'] );
+			}
+			else {
+				$table_body_output .= $review['country'];
+			}
+			$table_body_output .= '</td>';
+			$table_body_output .= '<td>' . substr( $review['review_date'], 0, strpos( $review['review_date'], 'T' ) ) . '</td>';
+			$table_body_output .= '<td>' . $review['rating'] . '</td>';
+			$rating_total += $review['rating'];
+			$table_body_output .= '<td>' . $review['name'] . '</td>';
+			$table_body_output .= '<td>' . $review['title'] . '</td>';
+			$table_body_output .= '<td>' . $review['content'] . '</td>';
+			$table_body_output .= '</tr>';
+		}
+		/* DISPLAY TABLE */
+		$output .= '<table border="1" cellpadding="10" cellspacing="0" style="background: #fefefe; max-width: 1200px;">';
+		$output .= '<tr><th style="vertical-align: top;">NUMBER<br /><small>(Total: ' . $review_number . ')</small></th><th style="vertical-align: top;">COUNTRY</th><th style="vertical-align: top;">DATE</th><th style="vertical-align: top;">RATING<br /><small>(Avg: ' . round( ( $rating_total / $review_number ), 2 ) . ')</small></th><th style="vertical-align: top;">NAME</th><th style="vertical-align: top;">TITLE</th><th style="vertical-align: top;">REVIEW</th></tr>';
+		$output .= $table_body_output . '</table>';
 	}
-	$country_codes = array( 
-		array( 'code' => 'ad', 'country' => 'Andorra' ), 
-		array( 'code' => 'ae', 'country' => 'United Arab Emirates' ), 
-		array( 'code' => 'ag', 'country' => 'Antigua and Barbuda' ), 
-		array( 'code' => 'al', 'country' => 'Albania' ), 
-		array( 'code' => 'am', 'country' => 'Armenia' ), 
-		array( 'code' => 'ao', 'country' => 'Angola' ), 
-		array( 'code' => 'ar', 'country' => 'Argentina' ), 
-		array( 'code' => 'at', 'country' => 'Austria' ), 
-		array( 'code' => 'au', 'country' => 'Australia' ), 
-		array( 'code' => 'az', 'country' => 'Azerbaijan' ), 
-		array( 'code' => 'ba', 'country' => 'Bosnia and Herzegovina' ), 
-		array( 'code' => 'bb', 'country' => 'Barbados' ), 
-		array( 'code' => 'bd', 'country' => 'Bangladesh' ), 
-		array( 'code' => 'be', 'country' => 'Belgium' ), 
-		array( 'code' => 'bf', 'country' => 'Burkina Faso' ), 
-		array( 'code' => 'bg', 'country' => 'Bulgaria' ), 
-		array( 'code' => 'bh', 'country' => 'Bahrain' ), 
-		array( 'code' => 'bi', 'country' => 'Burundi' ), 
-		array( 'code' => 'bj', 'country' => 'Benin' ), 
-		array( 'code' => 'bm', 'country' => 'Bermuda' ), 
-		array( 'code' => 'bn', 'country' => 'Brunei Darussalam' ), 
-		array( 'code' => 'bo', 'country' => 'Bolivia' ), 
-		array( 'code' => 'br', 'country' => 'Brazil' ), 
-		array( 'code' => 'bs', 'country' => 'Bahamas' ), 
-		array( 'code' => 'bt', 'country' => 'Bhutan' ), 
-		array( 'code' => 'bw', 'country' => 'Botswana' ), 
-		array( 'code' => 'by', 'country' => 'Belarus' ), 
-		array( 'code' => 'bz', 'country' => 'Belize' ), 
-		array( 'code' => 'ca', 'country' => 'Canada' ), 
-		array( 'code' => 'cd', 'country' => 'Democratic Republic of the Congo' ), 
-		array( 'code' => 'cf', 'country' => 'Central African Republic' ), 
-		array( 'code' => 'cg', 'country' => 'Congo' ), 
-		array( 'code' => 'ch', 'country' => 'Switzerland' ), 
-		array( 'code' => 'ci', 'country' => 'Côte d’Ivoire' ), 
-		array( 'code' => 'cl', 'country' => 'Chile' ), 
-		array( 'code' => 'cm', 'country' => 'Cameroon' ), 
-		array( 'code' => 'cn', 'country' => 'China' ), 
-		array( 'code' => 'co', 'country' => 'Colombia' ), 
-		array( 'code' => 'cr', 'country' => 'Costa Rica' ), 
-		array( 'code' => 'cu', 'country' => 'Cuba' ), 
-		array( 'code' => 'cv', 'country' => 'Cape Verde' ), 
-		array( 'code' => 'cy', 'country' => 'Cyprus' ), 
-		array( 'code' => 'cz', 'country' => 'Czech' ), 
-		array( 'code' => 'de', 'country' => 'Germany' ), 
-		array( 'code' => 'dj', 'country' => 'Djibouti' ), 
-		array( 'code' => 'dk', 'country' => 'Denmark' ), 
-		array( 'code' => 'dm', 'country' => 'Dominica' ), 
-		array( 'code' => 'do', 'country' => 'Dominican Republic' ), 
-		array( 'code' => 'dz', 'country' => 'Algeria' ), 
-		array( 'code' => 'ec', 'country' => 'Ecuador' ), 
-		array( 'code' => 'ee', 'country' => 'Estonia' ), 
-		array( 'code' => 'eg', 'country' => 'Egypt' ), 
-		array( 'code' => 'er', 'country' => 'Eritrea' ), 
-		array( 'code' => 'es', 'country' => 'Spain' ), 
-		array( 'code' => 'et', 'country' => 'Ethiopia' ), 
-		array( 'code' => 'fi', 'country' => 'Finland' ), 
-		array( 'code' => 'fj', 'country' => 'Fiji' ), 
-		array( 'code' => 'fk', 'country' => 'Falkland Islands' ), 
-		array( 'code' => 'fo', 'country' => 'Faroe Islands' ), 
-		array( 'code' => 'fr', 'country' => 'France' ), 
-		array( 'code' => 'ga', 'country' => 'Gabon' ), 
-		array( 'code' => 'gb', 'country' => 'United Kingdom' ), 
-		array( 'code' => 'gd', 'country' => 'Grenada' ), 
-		array( 'code' => 'ge', 'country' => 'Georgia' ), 
-		array( 'code' => 'gl', 'country' => 'Greenland' ), 
-		array( 'code' => 'gm', 'country' => 'Gambia' ), 
-		array( 'code' => 'gn', 'country' => 'Guinea' ), 
-		array( 'code' => 'gq', 'country' => 'Equatorial Guinea' ), 
-		array( 'code' => 'gr', 'country' => 'Greece' ), 
-		array( 'code' => 'gs', 'country' => 'South Georgia and South Sandwich Islands' ), 
-		array( 'code' => 'gt', 'country' => 'Guatemala' ), 
-		array( 'code' => 'gw', 'country' => 'Guinea-Bissau' ), 
-		array( 'code' => 'gy', 'country' => 'Guyana' ), 
-		array( 'code' => 'hk', 'country' => 'Hong Kong' ), 
-		array( 'code' => 'hn', 'country' => 'Honduras' ), 
-		array( 'code' => 'hr', 'country' => 'Croatia' ), 
-		array( 'code' => 'ht', 'country' => 'Haiti' ), 
-		array( 'code' => 'hu', 'country' => 'Hungary' ), 
-		array( 'code' => 'id', 'country' => 'Indonesia' ), 
-		array( 'code' => 'ie', 'country' => 'Ireland' ), 
-		array( 'code' => 'il', 'country' => 'Israel' ), 
-		array( 'code' => 'im', 'country' => 'Isle of Man' ), 
-		array( 'code' => 'in', 'country' => 'India' ), 
-		array( 'code' => 'iq', 'country' => 'Iraq' ), 
-		array( 'code' => 'ir', 'country' => 'Iran' ), 
-		array( 'code' => 'is', 'country' => 'Iceland' ), 
-		array( 'code' => 'it', 'country' => 'Italy' ), 
-		array( 'code' => 'jm', 'country' => 'Jamaica' ), 
-		array( 'code' => 'jo', 'country' => 'Jordan' ), 
-		array( 'code' => 'jp', 'country' => 'Japan' ), 
-		array( 'code' => 'ke', 'country' => 'Kenya' ), 
-		array( 'code' => 'kg', 'country' => 'Kyrgyzstan' ), 
-		array( 'code' => 'kh', 'country' => 'Cambodia' ), 
-		array( 'code' => 'ki', 'country' => 'Kiribati' ), 
-		array( 'code' => 'km', 'country' => 'Comoros' ), 
-		array( 'code' => 'kp', 'country' => 'North Korea' ), 
-		array( 'code' => 'kr', 'country' => 'South Korea' ), 
-		array( 'code' => 'kw', 'country' => 'Kuwait' ), 
-		array( 'code' => 'ky', 'country' => 'Cayman Islands' ), 
-		array( 'code' => 'kz', 'country' => 'Kazakhstan' ), 
-		array( 'code' => 'la', 'country' => 'Lao People’s Democratic Republic' ), 
-		array( 'code' => 'lb', 'country' => 'Lebanon' ), 
-		array( 'code' => 'lc', 'country' => 'Saint Lucia' ), 
-		array( 'code' => 'li', 'country' => 'Liechtenstein' ), 
-		array( 'code' => 'lk', 'country' => 'Sri Lanka' ), 
-		array( 'code' => 'lr', 'country' => 'Liberia' ), 
-		array( 'code' => 'ls', 'country' => 'Lesotho' ), 
-		array( 'code' => 'lt', 'country' => 'Lithuania' ), 
-		array( 'code' => 'lu', 'country' => 'Luxembourg' ), 
-		array( 'code' => 'lv', 'country' => 'Latvia' ), 
-		array( 'code' => 'ly', 'country' => 'Libyan Jamahiriya' ), 
-		array( 'code' => 'ma', 'country' => 'Morocco' ), 
-		array( 'code' => 'mc', 'country' => 'Monaco' ), 
-		array( 'code' => 'md', 'country' => 'Moldova' ), 
-		array( 'code' => 'me', 'country' => 'Montenegro' ), 
-		array( 'code' => 'mg', 'country' => 'Madagascar' ), 
-		array( 'code' => 'mk', 'country' => 'Macedonia' ), 
-		array( 'code' => 'ml', 'country' => 'Mali' ), 
-		array( 'code' => 'mm', 'country' => 'Myanmar' ), 
-		array( 'code' => 'mn', 'country' => 'Mongolia' ), 
-		array( 'code' => 'mo', 'country' => 'Macao' ), 
-		array( 'code' => 'mr', 'country' => 'Mauritania' ), 
-		array( 'code' => 'mt', 'country' => 'Malta' ), 
-		array( 'code' => 'mu', 'country' => 'Mauritius' ), 
-		array( 'code' => 'mv', 'country' => 'Maldives' ), 
-		array( 'code' => 'mw', 'country' => 'Malawi' ), 
-		array( 'code' => 'mx', 'country' => 'Mexico' ), 
-		array( 'code' => 'my', 'country' => 'Malaysia' ), 
-		array( 'code' => 'mz', 'country' => 'Mozambique' ), 
-		array( 'code' => 'na', 'country' => 'Namibia' ), 
-		array( 'code' => 'nc', 'country' => 'New Caledonia' ), 
-		array( 'code' => 'ne', 'country' => 'Niger' ), 
-		array( 'code' => 'ng', 'country' => 'Nigeria' ), 
-		array( 'code' => 'ni', 'country' => 'Nicaragua' ), 
-		array( 'code' => 'nl', 'country' => 'Netherlands' ), 
-		array( 'code' => 'no', 'country' => 'Norway' ), 
-		array( 'code' => 'np', 'country' => 'Nepal' ), 
-		array( 'code' => 'nr', 'country' => 'Nauru' ), 
-		array( 'code' => 'nz', 'country' => 'New Zealand' ), 
-		array( 'code' => 'om', 'country' => 'Oman' ), 
-		array( 'code' => 'pa', 'country' => 'Panama' ), 
-		array( 'code' => 'pe', 'country' => 'Peru' ), 
-		array( 'code' => 'pf', 'country' => 'French Polynesia' ), 
-		array( 'code' => 'pg', 'country' => 'Papua New Guinea' ), 
-		array( 'code' => 'ph', 'country' => 'Philippines' ), 
-		array( 'code' => 'pk', 'country' => 'Pakistan' ), 
-		array( 'code' => 'pl', 'country' => 'Poland' ), 
-		array( 'code' => 'pt', 'country' => 'Portugal' ), 
-		array( 'code' => 'py', 'country' => 'Paraguay' ), 
-		array( 'code' => 'qa', 'country' => 'Qatar' ), 
-		array( 'code' => 'ro', 'country' => 'Romania' ), 
-		array( 'code' => 'rs', 'country' => 'Serbia' ), 
-		array( 'code' => 'ru', 'country' => 'Russian Federation' ), 
-		array( 'code' => 'rw', 'country' => 'Rwanda' ), 
-		array( 'code' => 'sa', 'country' => 'Saudi Arabia' ), 
-		array( 'code' => 'sb', 'country' => 'Solomon Islands' ), 
-		array( 'code' => 'sc', 'country' => 'Seychelles' ), 
-		array( 'code' => 'sd', 'country' => 'Sudan' ), 
-		array( 'code' => 'se', 'country' => 'Sweden' ), 
-		array( 'code' => 'sg', 'country' => 'Singapore' ), 
-		array( 'code' => 'sh', 'country' => 'Saint Helena' ), 
-		array( 'code' => 'si', 'country' => 'Slovenia' ), 
-		array( 'code' => 'sk', 'country' => 'Slovakia' ), 
-		array( 'code' => 'sl', 'country' => 'Sierra Leone' ), 
-		array( 'code' => 'sn', 'country' => 'Senegal' ), 
-		array( 'code' => 'so', 'country' => 'Somalia' ), 
-		array( 'code' => 'sr', 'country' => 'Suriname' ), 
-		array( 'code' => 'st', 'country' => 'Sao Tome and Principe' ), 
-		array( 'code' => 'sv', 'country' => 'El Salvador' ), 
-		array( 'code' => 'sy', 'country' => 'Syrian Arab Republic' ), 
-		array( 'code' => 'sz', 'country' => 'Swaziland' ), 
-		array( 'code' => 'td', 'country' => 'Chad' ), 
-		array( 'code' => 'tg', 'country' => 'Togo' ), 
-		array( 'code' => 'th', 'country' => 'Thailand' ), 
-		array( 'code' => 'tj', 'country' => 'Tajikistan' ), 
-		array( 'code' => 'tl', 'country' => 'Timor-Leste' ), 
-		array( 'code' => 'tm', 'country' => 'Turkmenistan' ), 
-		array( 'code' => 'tn', 'country' => 'Tunisia' ), 
-		array( 'code' => 'to', 'country' => 'Tonga' ), 
-		array( 'code' => 'tr', 'country' => 'Turkey' ), 
-		array( 'code' => 'tt', 'country' => 'Trinidad and Tobago' ), 
-		array( 'code' => 'tv', 'country' => 'Tuvalu' ), 
-		array( 'code' => 'tw', 'country' => 'Taiwan' ), 
-		array( 'code' => 'tz', 'country' => 'United Republic of Tanzania' ), 
-		array( 'code' => 'ua', 'country' => 'Ukraine' ), 
-		array( 'code' => 'ug', 'country' => 'Uganda' ), 
-		array( 'code' => 'us', 'country' => 'United States' ), 
-		array( 'code' => 'uy', 'country' => 'Uruguay' ), 
-		array( 'code' => 'uz', 'country' => 'Uzbekistan' ), 
-		array( 'code' => 'va', 'country' => 'Vatican' ), 
-		array( 'code' => 'vc', 'country' => 'Saint Vincent and the Grenadines' ), 
-		array( 'code' => 've', 'country' => 'Venezuela' ), 
-		array( 'code' => 'vn', 'country' => 'Viet Nam' ), 
-		array( 'code' => 'vu', 'country' => 'Vanuatu' ), 
-		array( 'code' => 'ws', 'country' => 'Samoa' ), 
-		array( 'code' => 'ye', 'country' => 'Yemen' ), 
-		array( 'code' => 'yu', 'country' => 'Serbia and Montenegro' ), 
-		array( 'code' => 'za', 'country' => 'South Africa' ), 
-		array( 'code' => 'zm', 'country' => 'Zambia' ), 
-		array( 'code' => 'zw', 'country' => 'Zimbabwe' )
-	);
-	if ( $podcast_url = esc_url( $_POST["podcasturl"] ) ) { 
-		update_option( 'podwp_iprm_itunes_url', $podcast_url );
-	}
-	elseif ( !get_option( 'podwp_iprm_itunes_url' ) ) {
-		$powerpress_feed = get_option( 'powerpress_feed' );
-		if ( $podcast_url = esc_url( $powerpress_feed['itunes_url'] ) ) {
-			update_option( 'podwp_iprm_itunes_url', $podcast_url );
-			$itunes_url_auto_detected = TRUE;
-		}				
-	}
-	if ( get_option( 'podwp_iprm_itunes_url' ) ) {
-		$podcast_url = get_option( 'podwp_iprm_itunes_url' );
-		preg_match ( '([0-9][0-9][0-9]+)', $podcast_url, $matches );
-		$id = $matches[0];
-		$number = 0;
+	return $output;
+}
+function iprm_get_itunes_feed_contents() {
+	/* GET ARRAY OF ALL COUNTRY CODES AND COUNTRY NAMES */
+	$country_codes = iprm_get_country_codes();
+	/* CHECKS TO MAKE SURE ITUNES PODCAST URL IS DEFINED */
+	if ( get_option( 'iprm_itunes_url' ) ) {
 		$reviews = array( );
 		$review_countries = array( );
 		$retrieved_summary = FALSE;
+		$podcast_url = get_option( 'iprm_itunes_url' );
+		/* GET PODCAST ID */
+		preg_match ( '([0-9][0-9][0-9]+)', $podcast_url, $matches );
+		$id = $matches[0];
+		/* CHECK THROUGH THE REVIEW FEEDS FOR EVERY COUNTRY */
 		foreach ( $country_codes as $item ) {
 			$country_code = $item['code'];
 			$url_xml = 'https://itunes.apple.com/' . $country_code . '/rss/customerreviews/id=' . $id . '/xml';
-			$itunes_xml = wp_remote_get( $url_xml );
-			$itunes_json = json_encode( $itunes_xml );
+			$itunes_json = json_encode( wp_remote_get( $url_xml ) );
 			$data2 = json_decode( $itunes_json, TRUE );
 			$feed_body = $data2['body'];
+			/* LOOP THROUGH THE RAW CODE */
 			while ( strpos( $feed_body, '<entry>' ) !== false ) {
 				$new_review = array( );
+				/* LOOK AT CODE IN BETWEEN FIRST INSTANCE OF ENTRY TAGS */
 				$opening_tag = '<entry>';
 				$closing_tag = '</entry>';
 				$pos1 = strpos( $feed_body, $opening_tag );
 				$pos2 = strpos( $feed_body, $closing_tag );
 				$current_entry = substr( $feed_body, ( $pos1 + strlen( $opening_tag ) ), ( $pos2 - $pos1 - strlen( $opening_tag ) ) );
+				/* IF PODCAST INFO IS NOT FOUND, GET IT AND UPDATE DATABASE OPTION VALUES */
 				if ( !$retrieved_summary ) {
-					$feed_name = podwp_iprm_get_contents_inside_tag( $current_entry, '<im:name>', '</im:name>' );
-					$feed_artist = podwp_iprm_get_contents_inside_tag( $current_entry, '<im:artist>', '</im:artist>' );
-					$feed_summary = podwp_iprm_get_contents_inside_tag( $current_entry, '<summary>', '</summary>' );
-					$feed_image = podwp_iprm_get_contents_inside_tag( $current_entry, '<im:image height="55">', '</im:image>' );
+					$feed_name = iprm_get_contents_inside_tag( $current_entry, '<im:name>', '</im:name>' );
+					$feed_artist = iprm_get_contents_inside_tag( $current_entry, '<im:artist>', '</im:artist>' );
+					$feed_summary = iprm_get_contents_inside_tag( $current_entry, '<summary>', '</summary>' );
+					$feed_image = iprm_get_contents_inside_tag( $current_entry, '<im:image height="55">', '</im:image>' );
+					update_option( 'iprm_feed_name', $feed_name );
+					update_option( 'iprm_feed_artist', $feed_artist );
+					update_option( 'iprm_feed_summary', $feed_summary );
+					update_option( 'iprm_feed_image', $feed_image );
 					$retrieved_summary = TRUE;
-				}	
-				$review_url = podwp_iprm_get_contents_inside_tag( $current_entry, '<uri>', '</uri>' );
-				$review_url_country_code = substr( $review_url, ( strpos( $review_url, 'reviews' ) - 3 ), 2 );
-				if ( ( $country_code === $review_url_country_code ) && ( $current_entry !== '' ) ) {
-					$new_review['country'] = $item['country'];
-					$new_review['review_date'] = podwp_iprm_get_contents_inside_tag( $current_entry, '<updated>', '</updated>' );
-					$new_review['rating'] = podwp_iprm_get_contents_inside_tag( $current_entry, '<im:rating>', '</im:rating>' );
-					$new_review['name'] = podwp_iprm_get_contents_inside_tag( $current_entry, '<name>', '</name>' );
-					$new_review['title'] = podwp_iprm_get_contents_inside_tag( $current_entry, '<title>', '</title>' );
-					$new_review['content'] = podwp_iprm_get_contents_inside_tag( $current_entry, '<content type="text">', '</content>' );
-					array_push( $reviews, $new_review );
 				}
+				/* GET REVIEW URL AND REVIEW URL COUNTRY CODE */
+				$review_url = iprm_get_contents_inside_tag( $current_entry, '<uri>', '</uri>' );
+				$review_url_country_code = substr( $review_url, ( strpos( $review_url, 'reviews' ) - 3 ), 2 );
+				/* ADD NEW REVIEW TO REVIEW ARRAY */
+				if ( $current_entry !== '' ) {
+					$new_review['country'] = iprm_get_country_codes( $review_url_country_code );
+					$new_review['review_date'] = iprm_get_contents_inside_tag( $current_entry, '<updated>', '</updated>' );
+					$new_review['rating'] = iprm_get_contents_inside_tag( $current_entry, '<im:rating>', '</im:rating>' );
+					$new_review['name'] = iprm_get_contents_inside_tag( $current_entry, '<name>', '</name>' );
+					$new_review['title'] = iprm_get_contents_inside_tag( $current_entry, '<title>', '</title>' );
+					$new_review['content'] = iprm_get_contents_inside_tag( $current_entry, '<content type="text">', '</content>' );
+					/* CHECK TO MAKE SURE THERE IS A RATING AND NAME BEFORE ADDING REVIEW TO ARRAY */
+					if ( ( $new_review['rating'] != '' ) && ( $new_review['name'] != '' ) ) {
+						array_push( $reviews, $new_review );
+					}
+				}
+				/* REMOVE CODE AFTER FIRST INSTANCE OF ENTRY TAGS, SO THE NEXT LOOP ITERATION STARTS WITH THE NEXT INSTANCE OF ENTRY TAGS */
 				$feed_body = substr( $feed_body, ( $pos2 + strlen( $closing_tag ) ) );
 			}
 		}
 	}
-	echo '<div class="wrap">';
-	echo '<h2>Your Podcast</h2><br /><table border="1" cellpadding="10" cellspacing="0" style="max-width: 1000px;">';
-	if ( get_option( 'podwp_iprm_itunes_url' ) ) {
-		echo '<tr><td><img src="' . $feed_image . '" /></td><td><h3>' . $feed_name . '</h3>' .  $feed_artist . '<br /><br /></td><td width="50%">' . $feed_summary . '</td></tr>';
+	/* GET CACHED REVIEWS */
+	$old_reviews = get_option( 'iprm_review_cache' );
+	/* ADD CACHED REVIEWS TO NEW REVIEWS */
+	if ( $old_reviews != '' ) {
+		$reviews = array_merge( $reviews, $old_reviews );
 	}
-	echo '<tr><td colspan="3"><form action="' . $_SERVER["REQUEST_URI"] . '" method="POST">';
+	/* REMOVE DUPLICATES FROM COMBINED REVIEW ARRAY */
+	$reviews = iprm_remove_duplicates_from_review_array( $reviews );
+	/* ADD TIME AND REVIEW COUNT TO REVIEW CACHE HISTORY */
+	$review_count = count( $reviews );
+	$current_time = current_time( 'mysql' );
+	$iprm_review_cache_history = get_option( 'iprm_review_cache_history' );
+	if ( !is_array( $iprm_review_cache_history ) ) {
+		$iprm_review_cache_history = array( );
+	}
+	array_push( $iprm_review_cache_history, array( 'time' => $current_time, 'count' => $review_count ) );
+	/* REPLACE OLD REVIEW CACHE HISTORY WITH NEW REVIEW CACHE HISTORY */
+	update_option( 'iprm_review_cache_history', $iprm_review_cache_history );
+	/* REPLACE OLD CACHED REVIEWS WITH NEW CACHED REVIEWS */
+	update_option( 'iprm_review_cache', $reviews );
+	/* RETURN COMBINED REVIEW ARRAY */
+	return $reviews;
+}
+function iprm_plugin_main() {
+	/* DISABLES FOR NON-ADMINISTRATORS */
+	if ( !current_user_can( 'manage_options' ) )  {
+		wp_die( __( 'You do not have sufficient permissions to access this page.' ) );
+	}
+	/* IF URL IS ENTERED, UPDATE ITUNES URL. IF ITUNES URL IS NOT FOUND, TRY TO GET IT FROM POWERPRESS OPTION VALUE */
+	if ( $podcast_url = esc_url( $_POST["podcasturl"] ) ) { 
+		update_option( 'iprm_itunes_url', $podcast_url );
+		delete_option( 'iprm_review_cache' );
+		delete_option( 'iprm_review_cache_history' );
+	}
+	elseif ( !get_option( 'iprm_itunes_url' ) ) {
+		$powerpress_feed = get_option( 'powerpress_feed' );
+		if ( $podcast_url = esc_url( $powerpress_feed['itunes_url'] ) ) {
+			update_option( 'iprm_itunes_url', $podcast_url );
+			$itunes_url_auto_detected = TRUE;
+		}				
+	}
+	/* IF CHECK FOR REVIEWS MANUALLY BUTTON IS PRESSED, CHECK FOR REVIEWS */
+	if ( $_POST["checkreviews"] == 'Check for Reviews Manually' ) {
+		$reviews = iprm_get_itunes_feed_contents();
+	}
+	/* DISPLAY PLUGIN MENU */
+	echo '<div class="wrap">';
+	echo '<form action="' . $_SERVER["REQUEST_URI"] . '" method="POST"><table border="1" cellpadding="10" cellspacing="0" style="background: #efefef; max-width: 1200px; vertical-align: top;">';
+	/* DISPLAY ITUNES URL AND OPTION TO CHANGE IT */
+	echo '<tr><td style="vertical-align: top;"><h3>iTunes Podcast URL</h3>';
 	if ( $itunes_url_auto_detected ) {
-		echo 'We detected the following iTunes podcast URL. If this is incorrect, please paste your correct iTunes URL in the text box below.<br />';
+		echo '<p><b>We detected the following iTunes podcast URL. If this is incorrect, please enter your iTunes podcast URL.</b></p>';
 	}
 	else {
-		echo '<h3>Please enter your iTunes podcast URL.</h3><i>Example: http://itunes.apple.com/us/podcast/professional-wordpress-podcast/id885696994</i>.<br /><br />';
+		echo '<p><b>Please enter your iTunes podcast URL.</b></p>';
 	}
-	echo '<input type="text" name="podcasturl" size="80" value="' . get_option( 'podwp_iprm_itunes_url' ) . '"> <input class="button-primary" type="submit" name="updateurl" value="Update Podcast URL">';
-	echo '</form><br /></td></tr></table><br />';
-	if ( get_option( 'podwp_iprm_itunes_url' ) ) {
-		echo '<h2>Your International iTunes Podcast Reviews</h2><br />';
-		echo '<table border="1" cellpadding="10" cellspacing="0" style="max-width: 1000px;">';
-		echo '<tr>';
-		echo '<th>NUMBER</th>';
-		echo '<th>COUNTRY</th>';
-		echo '<th>DATE</th>';
-		echo '<th>RATING</th>';
-		echo '<th>NAME</th>';
-		echo '<th>REVIEW TITLE</th>';
-		echo '<th>REVIEW TEXT</th>';
-		echo '</tr>';
-		foreach ($reviews as $key => $row) {
-		    $review_date[$key]  = $row['review_date'];
-		    $country[$key] = $row['country'];
+	echo '<p><i>Example: http://itunes.apple.com/us/podcast/professional-wordpress-podcast/id885696994.</i></p>';
+	echo '<p><input type="text" name="podcasturl" size="80" value="' . get_option( 'iprm_itunes_url' ) . '"></p></p><input class="button-primary" type="submit" name="updateurl" value="Update Podcast URL"></p>';
+	echo '</td>';
+	/* DISPLAY CACHE HISTORY AND MANUAL REVIEW CHECK BUTTON */
+	echo '<td style="vertical-align: top;"><h3>Cached Reviews</h3><p><b>Recent Cache History: </b></p><p>';
+	$iprm_review_cache_history = get_option( 'iprm_review_cache_history' );
+	$i = 1;
+	if ( is_array( $iprm_review_cache_history ) ) {
+		foreach ( array_reverse( $iprm_review_cache_history ) as $item ) {
+			$i++;
+			echo $item['time'] . ' Reviews: ' . $item['count'] . '<br />';
+			if ( $i > 5 ) {
+				break;
+			}
 		}
-		array_multisort( $review_date, SORT_DESC, $country, SORT_DESC, $reviews );
-		foreach( $reviews as $review ) {
-			$number++;
-			echo '<tr>';
-			echo '<td>' . $number . '</td>';
-			echo '<td>' . $review['country'] . '</td>';
-			echo '<td>' . substr( $review['review_date'], 0, strpos( $review['review_date'], 'T' ) ) . '</td>';
-			echo '<td>' . $review['rating'] . '</td>';
-			echo '<td>' . $review['name'] . '</td>';
-			echo '<td>' . $review['title'] . '</td>';
-			echo '<td>' . $review['content'] . '</td>';
-			echo '</tr>';
-		}
-		echo '</table>';
 	}
+	echo '</p><p>This plugin will automatically check every 4 hours.</p><p><input class="button-primary" type="submit" name="checkreviews" value="Check for Reviews Manually"></p>';
+	echo '</td></tr>';
+	echo '</table></form><br />';
+	/* DISPLAY REVIEWS FROM CACHE OR GENERATE NEW REVIEWS IF CACHE IS EMPTY */
+	$review_cache_array = get_option( 'iprm_review_cache' );
+	if ( ( $review_cache_array == '' ) || ( is_array( $review_cache_array ) && empty( $review_cache_array ) ) ) {
+		echo iprm_display_reviews( iprm_get_itunes_feed_contents() );
+	}
+	else {
+		echo iprm_display_reviews( get_option( 'iprm_review_cache' ) );
+	}
+	/* DISPLAY FULL CACHE HISTORY */
+	/*echo iprm_get_full_cache_history();/**/
 	echo '</div>';
 }
-function podwp_iprm_plugin_menu() {
-	add_menu_page( 'Podcast Reviews', 'Podcast Reviews', 'manage_options', 'podwp_iprm', 'podwp_iprm_plugin_main' );
+function iprm_plugin_menu() {
+	/* ADD PLUGIN MENU */
+	add_menu_page( 'Podcast Reviews', 'Podcast Reviews', 'manage_options', 'iprm', 'iprm_plugin_main' );
 }
 
 ?>
