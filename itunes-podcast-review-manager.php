@@ -3,13 +3,14 @@
 Plugin Name: iTunes Podcast Review Manager
 Plugin URI: http://podwp.com/plugins/itunes-podcast-review-manager
 Description: Gathers all of your international podcast reviews from iTunes and displays them in a table. The plugin checks for new reviews in the background every 4 hours. Note: sometimes the iTunes feeds for certain countries are unreachable, and you will have to click the button to manually check for new reviews.
-Version: 1.1
+Version: 1.2
 Author: Doug Yuen
-Author URI: http://podwp.com
+Author URI: http://efficientwp.com
 License: GPLv2
 */
 
 require_once( dirname(__FILE__) . '/includes/utility-functions.php' );
+add_action( 'admin_init', 'iprm_plugin_init' );
 add_action( 'admin_menu', 'iprm_plugin_menu' );
 add_filter( 'cron_schedules', 'iprm_cron_add_every_four_hours' );
 add_action( 'iprm_schedule', 'iprm_get_itunes_feed_contents' );
@@ -31,10 +32,53 @@ function iprm_display_reviews( $reviews ) {
 		/* GET REVIEW DATE AND COUNTRY FOR SORTING */
 		foreach ( $reviews as $key => $row ) {
 		    $review_date[$key]  = $row['review_date'];
-		    $country[$key] = $row['country'];
+		    $review_country[$key] = $row['country'];
+		    $review_rating[$key] = $row['rating'];
+		    $review_name[$key] = $row['name'];
+		    $review_title[$key] = $row['title'];
+		    $review_content[$key] = $row['content'];
 		}
 		/* SORT REVIEWS BY DATE DESCENDING, THEN COUNTRY DESCENDING */
-		array_multisort( $review_date, SORT_DESC, $country, SORT_DESC, $reviews );
+		
+		if ( $_GET["country"] == 'asc' ) { 
+			array_multisort( $review_country, SORT_ASC, SORT_STRING | SORT_FLAG_CASE, $review_date, SORT_DESC, $reviews );
+		}
+		elseif ( $_GET["country"] == 'desc' ) { 
+			array_multisort( $review_country, SORT_DESC, SORT_STRING | SORT_FLAG_CASE, $review_date, SORT_DESC, $reviews );
+		}
+		elseif ( $_GET["date"] == 'asc' ) { 
+			array_multisort( $review_date, SORT_ASC, $review_country, SORT_DESC, $reviews );
+		}
+		elseif ( $_GET["date"] == 'desc' ) { 
+			array_multisort( $review_date, SORT_DESC, $review_country, SORT_DESC, $reviews );
+		}
+		elseif ( $_GET["rating"] == 'asc' ) { 
+			array_multisort( $review_rating, SORT_ASC, $review_date, SORT_DESC, $reviews );
+		}
+		elseif ( $_GET["rating"] == 'desc' ) { 
+			array_multisort( $review_rating, SORT_DESC, $review_date, SORT_DESC, $reviews );
+		}
+		elseif ( $_GET["name"] == 'asc' ) { 
+			array_multisort( $review_name, SORT_ASC, SORT_STRING | SORT_FLAG_CASE, $review_date, SORT_DESC, $reviews );
+		}
+		elseif ( $_GET["name"] == 'desc' ) { 
+			array_multisort( $review_name, SORT_DESC, SORT_STRING | SORT_FLAG_CASE, $review_date, SORT_DESC, $reviews );
+		}
+		elseif ( $_GET["title"] == 'asc' ) { 
+			array_multisort( $review_title, SORT_ASC, SORT_STRING | SORT_FLAG_CASE, $review_date, SORT_DESC, $reviews );
+		}
+		elseif ( $_GET["title"] == 'desc' ) { 
+			array_multisort( $review_title, SORT_DESC, SORT_STRING | SORT_FLAG_CASE, $review_date, SORT_DESC, $reviews );
+		}
+		elseif ( $_GET["content"] == 'asc' ) { 
+			array_multisort( $review_content, SORT_ASC, SORT_STRING | SORT_FLAG_CASE, $review_date, SORT_DESC, $reviews );
+		}
+		elseif ( $_GET["content"] == 'desc' ) { 
+			array_multisort( $review_content, SORT_DESC, SORT_STRING | SORT_FLAG_CASE, $review_date, SORT_DESC, $reviews );
+		}
+		else {
+			array_multisort( $review_date, SORT_DESC, $review_country, SORT_DESC, $reviews );
+		}
 		/* GENERATES TABLE ROWS FOR ALL REVIEWS */
 		$table_body_output = '';
 		foreach( $reviews as $review ) {
@@ -58,8 +102,34 @@ function iprm_display_reviews( $reviews ) {
 			$table_body_output .= '</tr>';
 		}
 		/* DISPLAY TABLE */
-		$output .= '<table border="1" cellpadding="10" cellspacing="0" style="background: #fefefe; max-width: 1200px;">';
-		$output .= '<tr><th style="vertical-align: top;">NUMBER<br /><small>(Total: ' . $review_number . ')</small></th><th style="vertical-align: top;">COUNTRY</th><th style="vertical-align: top;">DATE</th><th style="vertical-align: top;">RATING<br /><small>(Avg: ' . round( ( $rating_total / $review_number ), 2 ) . ')</small></th><th style="vertical-align: top;">NAME</th><th style="vertical-align: top;">TITLE</th><th style="vertical-align: top;">REVIEW</th></tr>';
+		$output .= '<table border="1" cellpadding="10" cellspacing="0" class="iprm-review-table" style="background: #fefefe; max-width: 1200px;">';
+		$output .= '<tr>';
+		$output .= '<th>NUMBER<br /><small>(Total: ' . $review_number . ')</small></th>';
+		$output .= '<th>COUNTRY ';
+		$output .= '<a href="?page=iprm&country=asc" class="iprm-sort-icon"><span class="dashicons dashicons-arrow-up"></span></a>';
+		$output .= '<a href="?page=iprm&country=desc" class="iprm-sort-icon"><span class="dashicons dashicons-arrow-down"></span></a> ';
+		$output .= '</th>';
+		$output .= '<th>DATE ';
+		$output .= '<a href="?page=iprm&date=asc" class="iprm-sort-icon"><span class="dashicons dashicons-arrow-up"></span></a>';
+		$output .= '<a href="?page=iprm&date=desc" class="iprm-sort-icon"><span class="dashicons dashicons-arrow-down"></span></a> ';
+		$output .= '</th>';
+		$output .= '<th>RATING ';
+		$output .= '<a href="?page=iprm&rating=asc" class="iprm-sort-icon"><span class="dashicons dashicons-arrow-up"></span></a>';
+		$output .= '<a href="?page=iprm&rating=desc" class="iprm-sort-icon"><span class="dashicons dashicons-arrow-down"></span></a> ';
+		$output .= '<br /><small>(Average: ' . round( ( $rating_total / $review_number ), 2 ) . ')</small></th>';
+		$output .= '<th>NAME ';
+		$output .= '<a href="?page=iprm&name=asc" class="iprm-sort-icon"><span class="dashicons dashicons-arrow-up"></span></a>';
+		$output .= '<a href="?page=iprm&name=desc" class="iprm-sort-icon"><span class="dashicons dashicons-arrow-down"></span></a> ';
+		$output .= '</th>';
+		$output .= '<th>TITLE ';
+		$output .= '<a href="?page=iprm&title=asc" class="iprm-sort-icon"><span class="dashicons dashicons-arrow-up"></span></a>';
+		$output .= '<a href="?page=iprm&title=desc" class="iprm-sort-icon"><span class="dashicons dashicons-arrow-down"></span></a> ';
+		$output .= '</th>';
+		$output .= '<th>REVIEW ';
+		$output .= '<a href="?page=iprm&content=asc" class="iprm-sort-icon"><span class="dashicons dashicons-arrow-up"></span></a>';
+		$output .= '<a href="?page=iprm&content=desc" class="iprm-sort-icon"><span class="dashicons dashicons-arrow-down"></span></a> ';
+		$output .= '</th>';
+		$output .= '</tr>';
 		$output .= $table_body_output . '</table>';
 	}
 	return $output;
@@ -71,6 +141,7 @@ function iprm_get_itunes_feed_contents() {
 	if ( get_option( 'iprm_itunes_url' ) ) {
 		$reviews = array( );
 		$review_countries = array( );
+		$urls_to_crawl = array( );
 		$retrieved_summary = FALSE;
 		$podcast_url = get_option( 'iprm_itunes_url' );
 		/* GET PODCAST ID */
@@ -80,7 +151,30 @@ function iprm_get_itunes_feed_contents() {
 		foreach ( $country_codes as $item ) {
 			$country_code = $item['code'];
 			$url_xml = 'https://itunes.apple.com/' . $country_code . '/rss/customerreviews/id=' . $id . '/xml';
-			$itunes_json = json_encode( wp_remote_get( $url_xml ) );
+			$urls_to_crawl[] = $url_xml;
+			$itunes_json1 = json_encode( wp_remote_get( $url_xml ) );
+			$data1 = json_decode( $itunes_json1, TRUE );
+			$feed_body1 = $data1['body'];/**/
+			$first_review_page_url = iprm_get_contents_inside_tag( $feed_body1, '<link rel="first" href="', '"/>' );
+			$last_review_page_url = iprm_get_contents_inside_tag( $feed_body1, '<link rel="last" href="', '"/>' );
+			$next_review_page_url = iprm_get_contents_inside_tag( $feed_body1, '<link rel="next" href="', '"/>' );
+			if ( $first_review_page_url != $last_review_page_url ) {
+				$urls_to_crawl[] = $next_review_page_url;
+				$i = 0;
+				while ( ( $next_review_page_url != $last_review_page_url ) && ( $i < 100 ) ) {
+					$next_page_number = iprm_get_contents_inside_tag( $next_review_page_url, 'page=', '/id' );
+					$pos = strpos( $next_review_page_url, $next_page_number );
+					if ($pos !== false) {
+					    $next_review_page_url = substr_replace( $next_review_page_url, $next_page_number + 1, $pos, strlen( $next_page_number ) );
+					}
+					$urls_to_crawl[] = $next_review_page_url;
+					$i++;
+				}
+			}
+		}
+		$urls_to_crawl = array_unique( $urls_to_crawl );
+		foreach ( $urls_to_crawl as $url ) {
+			$itunes_json = json_encode( wp_remote_get( $url ) );
 			$data2 = json_decode( $itunes_json, TRUE );
 			$feed_body = $data2['body'];
 			/* LOOP THROUGH THE RAW CODE */
@@ -148,13 +242,17 @@ function iprm_get_itunes_feed_contents() {
 	/* RETURN COMBINED REVIEW ARRAY */
 	return $reviews;
 }
+function iprm_plugin_init() {
+	wp_register_style( 'iprm_plugin_stylesheet', plugins_url( 'style.css', __FILE__ ) );
+}
 function iprm_plugin_main() {
 	/* DISABLES FOR NON-ADMINISTRATORS */
 	if ( !current_user_can( 'manage_options' ) )  {
 		wp_die( __( 'You do not have sufficient permissions to access this page.' ) );
 	}
 	/* IF URL IS ENTERED, UPDATE ITUNES URL. IF ITUNES URL IS NOT FOUND, TRY TO GET IT FROM POWERPRESS OPTION VALUE */
-	if ( $podcast_url = esc_url( $_POST["podcasturl"] ) ) { 
+	if ( $_POST["podcasturl"] != '' ) { 
+		$podcast_url = esc_url( $_POST["podcasturl"] );
 		update_option( 'iprm_itunes_url', $podcast_url );
 		delete_option( 'iprm_review_cache' );
 		delete_option( 'iprm_review_cache_history' );
@@ -182,7 +280,9 @@ function iprm_plugin_main() {
 		echo '<p><b>Please enter your iTunes podcast URL.</b></p>';
 	}
 	echo '<p><i>Example: http://itunes.apple.com/us/podcast/professional-wordpress-podcast/id885696994.</i></p>';
-	echo '<p><input type="text" name="podcasturl" size="80" value="' . get_option( 'iprm_itunes_url' ) . '"></p></p><input class="button-primary" type="submit" name="updateurl" value="Update Podcast URL"></p>';
+	echo '<p><input type="text" name="podcasturl" size="80" value="' . get_option( 'iprm_itunes_url' ) . '"></p></p><input class="button-primary" type="submit" name="updateurl" value="Update Podcast URL"><br /><br /></p>';
+	echo '<h3>Premium Service - Launching Soon!</h3>';
+	echo '<p>For more information and to find out when we launch, please <a href="http://eepurl.com/bhU4SD" target="_blank">enter your email here</a>.</p>';
 	echo '</td>';
 	/* DISPLAY CACHE HISTORY AND MANUAL REVIEW CHECK BUTTON */
 	echo '<td style="vertical-align: top;"><h3>Cached Reviews</h3><p><b>Recent Cache History: </b></p><p>';
@@ -214,7 +314,11 @@ function iprm_plugin_main() {
 }
 function iprm_plugin_menu() {
 	/* ADD PLUGIN MENU */
-	add_menu_page( 'Podcast Reviews', 'Podcast Reviews', 'manage_options', 'iprm', 'iprm_plugin_main' );
+	$page = add_menu_page( 'Podcast Reviews', 'Podcast Reviews', 'manage_options', 'iprm', 'iprm_plugin_main', 'dashicons-star-filled' );
+	add_action( 'admin_print_styles-' . $page, 'iprm_plugin_styles' );
+}
+function iprm_plugin_styles() {
+	wp_enqueue_style( 'iprm_plugin_stylesheet' );
 }
 
 ?>

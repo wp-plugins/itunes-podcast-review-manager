@@ -229,7 +229,7 @@ function iprm_cron_add_every_four_hours( $schedules ) {
 function iprm_get_contents_inside_tag( $string, $opening_tag, $closing_tag ) {
 	/* GET FIRST POSITIONS OF OPENING AND CLOSING TAGS */
 	$pos1 = strpos( $string, $opening_tag );
-	$pos2 = strpos( $string, $closing_tag );
+	$pos2 = strpos( $string, $closing_tag, $pos1 );
 	/* IF BOTH ARE FOUND, RETURN THE CONTENTS BETWEEN THEM */
 	if ( $pos1 !== FALSE and $pos2 !== FALSE ) {
 		return substr( $string, ( $pos1 + strlen( $opening_tag ) ), ( $pos2 - $pos1 - strlen( $opening_tag ) ) );

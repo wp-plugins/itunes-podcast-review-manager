@@ -1,0 +1,13 @@
+a.iprm-sort-icon {
+	text-decoration: none;
+}
+a.iprm-sort-icon span {
+
+}
+table.iprm-review-table th {
+	vertical-align: top;
+	white-space: nowrap;
+}
+table.iprm-review-table td {
+	vertical-align: top;
+}
