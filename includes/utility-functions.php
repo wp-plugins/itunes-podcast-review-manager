@@ -1,5 +1,7 @@
 <?php
 
+/* FOR UTILITY FUNCTIONS */
+
 function iprm_get_country_codes( $code ) {
 	/* RETURNS AN ARRAY OF COUNTRY CODES WITH COUNTRY NAMES, OR THE COUNTRY NAME ASSOCIATED WITH A PARTICULAR COUNTRY CODE */
 	$country_codes = array( 
@@ -239,19 +241,6 @@ function iprm_get_contents_inside_tag( $string, $opening_tag, $closing_tag ) {
 		return '';
 	}
 }
-function iprm_get_full_cache_history( ) {
-	/* GETS THE FULL CACHE HISTORY AND DISPLAYS IT IN A TABLE */
-	$iprm_review_cache_history = get_option( 'iprm_review_cache_history' );
-	$output = '<p><b>Cache History:</b></p>';
-	$output .= '<table>';
-	if ( is_array( $iprm_review_cache_history ) ) {
-		foreach ( array_reverse( $iprm_review_cache_history ) as $item ) {
-			$output .= '<tr><td>' . $item['time'] . '</td><td>Review Count: ' . $item['count'] . '</td></tr>';
-		}
-	}
-	$output .= '</table>';
-	return $output;
-}
 function iprm_remove_duplicates_from_review_array( $reviews ) {
 	/* REMOVES THE DUPLICATE ENTRIES FROM REVIEW ARRAY, AS WELL AS ANY WITHOUT A RATING OR USERNAME */
 	$review_count = count( $reviews );
@@ -259,7 +248,6 @@ function iprm_remove_duplicates_from_review_array( $reviews ) {
 		/* REMOVES REVIEWS WITHOUT A RATING OR USERNAME */
 		if ( ( $reviews[$i]['rating'] == '' ) || ( $reviews[$i]['name'] == '' ) ) {
 			unset( $reviews[$i] );
-
 		}
 		/* REMOVES DUPLICATE ENTRIES */
 		else {
@@ -272,4 +260,3 @@ function iprm_remove_duplicates_from_review_array( $reviews ) {
 	}
 	return $reviews;
 }
-?>

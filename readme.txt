@@ -1,23 +1,23 @@
 === iTunes Podcast Review Manager ===
 
 Contributors: Doug Yuen
-Author URI: http://podwp.com
-Plugin URI: http://podwp.com/plugins/itunes-podcast-review-manager
-Tags: itunes, podcast, reviews
+Author URI: http://efficientwp.com
+Plugin URI: http://efficientwp.com/plugins/itunes-podcast-review-manager
+Tags: itunes, podcast, podcasts, podcasting, reviews, international, country, countries, audio
 Requires at least: 4.0
-Tested up to: 4.1.1
-Stable tag: 1.2
+Tested up to: 4.2.1
+Stable tag: trunk
 License: GPLv2 or later
 
-Gathers all of your international podcast reviews from iTunes and displays them in a table.
+Podcast reviews from iTunes, automatically gathered and displayed in a sortable table. This plugin gets your podcast reviews from all countries.
 
 == Description ==
 
-Gathers all of your international podcast reviews from iTunes and displays them in a table with sortable columns. This plugin also checks for new reviews in the background every 4 hours. Note: sometimes the iTunes feeds for certain countries are unreachable, and you can click the button to manually check for new reviews.
+Gathers all of your international podcast reviews from iTunes and displays them in a table with sortable columns. This plugin also checks for new reviews in the background every 4 hours. Note: sometimes the iTunes feeds for certain countries are unreachable, and you can click the button to manually check for new reviews for your podcast.
 
-We're working on a new service for checking your international podcast reviews. It will include features like email notifications, charts, filtering, multiple podcasts, and more. For more information and to find out when we launch, please [enter your email here](http://eepurl.com/bhU4SD).
+We're working on a new service for checking your international podcast reviews. It will include features like email notifications, charts, filtering, multiple podcasts, and more. For more information and to find out when we launch, please [enter your email here](http://eepurl.com/bhU4SD "Podcast Review Service").
 
-Created by [PodWP](http://podwp.com "PodWP").
+Created by [EfficientWP](http://efficientwp.com "EfficientWP").
 
 == Installation ==
 
@@ -28,13 +28,19 @@ Created by [PodWP](http://podwp.com "PodWP").
 
 == Frequently Asked Questions ==
 
-Plugin page: [http://podwp.com/plugins/itunes-podcast-review-manager](http://podwp.com/plugins/itunes-podcast-review-manager= "iTunes Podcast Review Manager").
+[Plugin page on EfficientWP](http://efficientwp.com/plugins/itunes-podcast-review-manager "iTunes Podcast Review Manager")
 
 == Screenshots ==
 
 1. The plugin panel in the Podcast Reviews menu.
 
 == Changelog ==
+
+= 2.0 =
+* Major design and UI improvements
+* Code cleanup
+* Added localization options
+* Confirmed compatibility up to WordPress 4.2.1
 
 = 1.2 =
 * Added plugin menu icon
