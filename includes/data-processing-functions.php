@@ -2,13 +2,16 @@
 
 /* FOR DATA PROCESSING */
 
+function iprm_deactivate() {
+	wp_clear_scheduled_hook( 'iprm_schedule' );
+}
 function iprm_get_itunes_feed_contents() {
 	global $iprm_review_cache;
 	global $iprm_review_cache_history;
 	global $iprm_settings;
 	$iprm_settings_new = $iprm_settings;
 	/* GET ARRAY OF ALL COUNTRY CODES AND COUNTRY NAMES */
-	$country_codes = iprm_get_country_codes( '' );
+	$country_codes = iprm_get_country_data( '', '' );
 	/* CHECKS TO MAKE SURE ITUNES PODCAST URL IS DEFINED */
 	if ( $iprm_settings['itunes_url'] != '' ) {
 		$reviews = array( );
@@ -61,10 +64,22 @@ function iprm_get_itunes_feed_contents() {
 				$current_entry = substr( $feed_body, ( $pos1 + strlen( $opening_tag ) ), ( $pos2 - $pos1 - strlen( $opening_tag ) ) );
 				/* IF PODCAST INFO IS NOT FOUND, GET IT AND UPDATE DATABASE OPTION VALUES */
 				if ( !$retrieved_summary ) {
-					$iprm_settings_new['itunes_feed_name'] = iprm_get_contents_inside_tag( $current_entry, '<im:name>', '</im:name>' );
-					$iprm_settings_new['itunes_feed_artist'] = iprm_get_contents_inside_tag( $current_entry, '<im:artist>', '</im:artist>' );
-					$iprm_settings_new['itunes_feed_summary'] = iprm_get_contents_inside_tag( $current_entry, '<summary>', '</summary>' );
-					$iprm_settings_new['itunes_feed_image'] = iprm_get_contents_inside_tag( $current_entry, '<im:image height="170">', '</im:image>' );
+					$itunes_feed_name = iprm_get_contents_inside_tag( $current_entry, '<im:name>', '</im:name>' );
+					if ( $itunes_feed_name ) {
+						$iprm_settings_new['itunes_feed_name'] = iprm_get_contents_inside_tag( $current_entry, '<im:name>', '</im:name>' );
+					}
+					$itunes_feed_artist = iprm_get_contents_inside_tag( $current_entry, '<im:artist>', '</im:artist>' );
+					if ( $itunes_feed_artist ) {
+						$iprm_settings_new['itunes_feed_artist'] = iprm_get_contents_inside_tag( $current_entry, '<im:artist>', '</im:artist>' );
+					}
+					$itunes_feed_summary = iprm_get_contents_inside_tag( $current_entry, '<summary>', '</summary>' );
+					if ( $itunes_feed_summary ) {
+						$iprm_settings_new['itunes_feed_summary'] = iprm_get_contents_inside_tag( $current_entry, '<summary>', '</summary>' );
+					}
+					$itunes_feed_image = iprm_get_contents_inside_tag( $current_entry, '<im:image height="170">', '</im:image>' );
+					if ( $itunes_feed_image ) {
+						$iprm_settings_new['itunes_feed_image'] = iprm_get_contents_inside_tag( $current_entry, '<im:image height="170">', '</im:image>' );
+					}
 					$retrieved_summary = TRUE;
 				}
 				/* GET REVIEW URL AND REVIEW URL COUNTRY CODE */
@@ -72,7 +87,7 @@ function iprm_get_itunes_feed_contents() {
 				$review_url_country_code = substr( $review_url, ( strpos( $review_url, 'reviews' ) - 3 ), 2 );
 				/* ADD NEW REVIEW TO REVIEW ARRAY */
 				if ( $current_entry !== '' ) {
-					$new_review['country'] = iprm_get_country_codes( $review_url_country_code );
+					$new_review['country'] = iprm_get_country_data( $review_url_country_code, '' );
 					$new_review['review_date'] = iprm_get_contents_inside_tag( $current_entry, '<updated>', '</updated>' );
 					$new_review['rating'] = iprm_get_contents_inside_tag( $current_entry, '<im:rating>', '</im:rating>' );
 					$new_review['name'] = iprm_get_contents_inside_tag( $current_entry, '<name>', '</name>' );
@@ -112,6 +127,9 @@ function iprm_get_itunes_feed_contents() {
 function iprm_delete_option( $option ) {
 	delete_option( $option );
 	// delete_option( $option );
+}
+function iprm_get_option( $option ) {
+	return get_option( $option );
 }
 function iprm_update_option( $option_old, $option_new ) {
 	update_option( $option_old, $option_new );

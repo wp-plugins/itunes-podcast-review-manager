@@ -2,6 +2,10 @@
 
 /* FOR DISPLAYING CONTENT */
 
+function iprm_display_as_shortcode( ) {
+	global $iprm_review_cache;
+	return '<div class="wrap iprm">' . iprm_display_reviews( $iprm_review_cache ) . '</div>';
+}
 function iprm_display_navigation( $current_page ) {
 	$navigation = array (
 		'iprm_main_page' => array ( 
@@ -34,23 +38,29 @@ function iprm_display_navigation( $current_page ) {
 	$output .= '</div>';
 	return $output;
 }
-function iprm_display_reviews( $reviews ) {
-	global $iprm_settings;
-	$review_number = 0;
-	$output = '';
-	$rating_total = 0;
+function iprm_display_alert( $alert ) {
+	if ( $alert ) {
+		return '<div class="iprm-alert"><p>' . $alert . '</p></div>';
+	}
+}
+function iprm_display_notice( $notice ) {
+	if ( $notice ) {
+		return '<div class="iprm-notice"><p>' . $notice . '</p></div>';
+	}
+}
+function iprm_display_itunes_feed_summary( $iprm_settings ) {
 	/* CHECKS TO MAKE SURE ITUNES PODCAST URL IS DEFINED */
 	if ( $iprm_settings['itunes_url'] != '' ) {
 		/* DISPLAY HEADING AND TABLE WITH PODCAST INFO */
-		$output .= '
+		$output = '
 			<table class="iprm-table-small-border">
 				<tr>
-					<th width="85%">
-						<h2>' . $iprm_settings['itunes_feed_name'] . '</h2>
-					</th>
 					<td width="15%" rowspan="2">
 						<img src="' . $iprm_settings['itunes_feed_image'] . '" />
 					</td>
+					<th width="85%">
+						<h2>' . $iprm_settings['itunes_feed_name'] . '</h2>
+					</th>
 				</tr>
 				<tr>
 					<td>
@@ -60,6 +70,23 @@ function iprm_display_reviews( $reviews ) {
 				</tr>
 			</table>
 		';
+	}
+	return $output;
+}
+function iprm_display_reviews( $reviews ) {
+	global $iprm_settings;
+	$review_number = 0;
+	$output = '';
+	$rating_total = 0;
+	if ( is_admin() )  {
+		$sort_colspan = 2;
+	}
+	else {
+		$sort_colspan = 1;
+	}
+	$sort_colspan = 2;
+	/* CHECKS TO MAKE SURE ITUNES PODCAST URL IS DEFINED */
+	if ( $iprm_settings['itunes_url'] != '' ) {
 		/* GET REVIEW DATE AND COUNTRY FOR SORTING */
 		foreach ( $reviews as $key => $row ) {
 		    $review_date[$key]  = $row['review_date'];
@@ -117,20 +144,33 @@ function iprm_display_reviews( $reviews ) {
 			$table_body_output .= '
 				<tr>
 					<td>' . $review_number . '</td>
-					<td colspan="2">';
+					<td class="flag">';
+						if ( $review['country'] ) {
+							if ( strlen( $review['country'] ) == 2 ) {
+								$code = $review['country'];
+							}
+							else {
+								$code = iprm_get_country_data( '', $review['country'] );
+							}
+							$flag_image = 'images/flags/' . $code . '.png';
+							$table_body_output .= '<img src="' . plugins_url( $flag_image, dirname( __FILE__ ) ) . '" />';
+						}
+					$table_body_output .= '
+					</td>
+					<td colspan="' . $sort_colspan . '">';
 						if ( strlen( $review['country'] ) == 2 ) {
-							$table_body_output .= iprm_get_country_codes( $review['country'] );
+							$table_body_output .= iprm_get_country_data( $review['country'], '' );
 						}
 						else {
 							$table_body_output .= $review['country'];
 						}
 					$table_body_output .= '
 					</td>
-					<td colspan="2">' . substr( $review['review_date'], 0, strpos( $review['review_date'], 'T' ) ) . '</td>
-					<td colspan="2">' . $review['rating'] . '</td>
-					<td colspan="2">' . $review['name'] . '</td>
-					<td colspan="2">' . $review['title'] . '</td>
-					<td colspan="2">' . $review['content'] . '</td>
+					<td colspan="' . $sort_colspan . '">' . substr( $review['review_date'], 0, strpos( $review['review_date'], 'T' ) ) . '</td>
+					<td colspan="' . $sort_colspan . '">' . $review['rating'] . '</td>
+					<td colspan="' . $sort_colspan . '">' . $review['name'] . '</td>
+					<td colspan="' . $sort_colspan . '">' . $review['title'] . '</td>
+					<td colspan="' . $sort_colspan . '">' . $review['content'] . '</td>
 				</tr>
 			';
 		}
@@ -138,81 +178,109 @@ function iprm_display_reviews( $reviews ) {
 		$output .= '
 			<table class="iprm-review-table iprm-table-small-border">
 				<tr>
-					<th class="">
+					<th class="iprm-alt">
 						<div class="iprm-sort-text">
 							' . __( 'NUMBER', 'iprm_domain' ) . '<br />
 							<small>(' . __( 'Total:', 'iprm_domain' ) . ' ' . $review_number . ')</small>
+						</div>
+					</th>
+					<th class="">
+						<div class="iprm-sort-text">
+							' . __( 'FLAG', 'iprm_domain' ) . '
 						</div>
 					</th>
 					<th class="iprm-alt">
 						<div class="iprm-sort-text">
 							' . __( 'COUNTRY', 'iprm_domain' ) . '
 						</div>
-					</th>
+					</th>';
+		if ( $sort_colspan == 2 ) {
+			$output .= '
 					<th class="iprm-sort iprm-alt">
 						<div class="iprm-sort-icon">
 							<a href="?page=iprm_main_page&country=asc"><span class="dashicons dashicons-arrow-up"></span></a><br />
 							<a href="?page=iprm_main_page&country=desc"><span class="dashicons dashicons-arrow-down"></span></a>
 						</div>
-					</th>
+					</th>';
+		}
+		$output .= '
 					<th class="">
 						<div class="iprm-sort-text">
 							' . __( 'DATE', 'iprm_domain' ) . '
 						</div>
-					</th>
+					</th>';
+		if ( $sort_colspan == 2 ) {
+			$output .= '
 					<th class="iprm-sort">
 						<div class="iprm-sort-icon">
 							<a href="?page=iprm_main_page&date=asc"><span class="dashicons dashicons-arrow-up"></span></a><br />
 							<a href="?page=iprm_main_page&date=desc"><span class="dashicons dashicons-arrow-down"></span></a>
 						</div>
-					</th>
+					</th>';
+		}
+		$output .= '
 					<th class="iprm-alt">
 						<div class="iprm-sort-text">
 							' . __( 'RATING', 'iprm_domain' ) . '<br />
 							<small>(' . __( 'Average:', 'iprm_domain' ) . ' ' . round( ( $rating_total / $review_number ), 2 ) . ')</small>
 						</div>
-					</th>
+					</th>';
+		if ( $sort_colspan == 2 ) {
+			$output .= '
 					<th class="iprm-sort iprm-alt">
 						<div class="iprm-sort-icon">
 							<a href="?page=iprm_main_page&rating=asc"><span class="dashicons dashicons-arrow-up"></span></a><br />
 							<a href="?page=iprm_main_page&rating=desc"><span class="dashicons dashicons-arrow-down"></span></a>
 						</div>
-					</th>
+					</th>';
+		}
+		$output .= '
 					<th class="">
 						<div class="iprm-sort-text">
 							' . __( 'NAME', 'iprm_domain' ) . ' 
 						</div>
-					</th>
+					</th>';
+		if ( $sort_colspan == 2 ) {
+			$output .= '
 					<th class="iprm-sort">
 						<div class="iprm-sort-icon">
 							<a href="?page=iprm_main_page&name=asc"><span class="dashicons dashicons-arrow-up"></span></a><br />
 							<a href="?page=iprm_main_page&name=desc"><span class="dashicons dashicons-arrow-down"></span></a>
 						</div>
-					</th>
+					</th>';
+		}
+		$output .= '
 					<th class="iprm-alt">
 						<div class="iprm-sort-text">
 							' . __( 'TITLE', 'iprm_domain' ) . ' 
 						</div>
-					</th>
+					</th>';
+		if ( $sort_colspan == 2 ) {
+			$output .= '
 					<th class="iprm-sort iprm-alt">
 						<div class="iprm-sort-icon">
 							<a href="?page=iprm_main_page&title=asc"><span class="dashicons dashicons-arrow-up"></span></a><br />
 							<a href="?page=iprm_main_page&title=desc"><span class="dashicons dashicons-arrow-down"></span></a>
 						</div>
-					</th>
+					</th>';
+		}
+		$output .= '
 					<th class="">
 						<div class="iprm-sort-text">
 							' . __( 'REVIEW', 'iprm_domain' ) . ' 
 						</div>
-					</th>
+					</th>';
+		if ( $sort_colspan == 2 ) {
+			$output .= '
 					<th class="iprm-sort">
 						<div class="iprm-sort-icon">
 							<a href="?page=iprm_main_page&content=asc"><span class="dashicons dashicons-arrow-up"></span></a><br />
 							<a href="?page=iprm_main_page&content=desc"><span class="dashicons dashicons-arrow-down"></span></a>
 						</div>
 					</th>
-				</tr>
-				' . $table_body_output . '
+				</tr>';
+		}
+		$output .= $table_body_output . '
 			</table>
 		';
 	}

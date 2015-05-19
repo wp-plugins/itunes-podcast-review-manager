@@ -1,68 +1,84 @@
 /****** FLAT DESIGN COLORS ******
 
-TURQUOISE (LIGHT AQUA)        #1ABC9C
-GREEN SEA (DARK AQUA)         #16A085
-EMERALD (LIGHT GREEN)         #2ECC71
-NEPHRITIS (DARK GREEN)        #27AE60
-PETER RIVER (LIGHT BLUE)      #3498DB
-BELIZE HOLE (DARK BLUE)       #2980B9
-AMETHYST (LIGHT PURPLE)       #9B59B6
-WISTERIA (DARK PURPLE)        #8E44AD
-WET ASPHALT (DARK GRAY)       #34495E
-MIDNIGHT BLUE (DARKER GRAY)   #2C3E50
-SUN FLOWER (YELLOW)           #F1C40F
-ORANGE (LIGHT ORANGE)         #F39C12
-CARROT (DARK ORANGE)          #E67E22
-PUMPKIN (DARKER ORANGE)       #D35400
-ALIZARIN (LIGHT RED)          #E74C3C
-POMEGRANATE (DARK RED)        #C0392B
-CLOUDS (OFF WHITE)            #ECF0F1
-SILVER (LIGHTER GRAY)         #BDC3C7
-CONCRETE (LIGHT GRAY)         #95A5A6
-ASBESTOS (MEDIUM GRAY)        #7F8C8D
+TURQUOISE (LIGHT AQUA)        #1abc9c
+GREEN SEA (DARK AQUA)         #16a085
+EMERALD (LIGHT GREEN)         #2ecc71
+NEPHRITIS (DARK GREEN)        #27ae60
+PETER RIVER (LIGHT BLUE)      #3498db
+BELIZE HOLE (DARK BLUE)       #2980b9
+AMETHYST (LIGHT PURPLE)       #9b59b6
+WISTERIA (DARK PURPLE)        #8e44ad
+WET ASPHALT (DARK GRAY)       #34495e
+MIDNIGHT BLUE (DARKER GRAY)   #2c3e50
+SUN FLOWER (YELLOW)           #f1c40f
+ORANGE (LIGHT ORANGE)         #f39c12
+CARROT (DARK ORANGE)          #e67e22
+PUMPKIN (DARKER ORANGE)       #d35400
+ALIZARIN (LIGHT RED)          #e74c3c
+POMEGRANATE (DARK RED)        #c0392b
+CLOUDS (OFF WHITE)            #ecf0f1
+SILVER (LIGHTER GRAY)         #bdc3c7
+CONCRETE (LIGHT GRAY)         #95a5a6
+ASBESTOS (MEDIUM GRAY)        #7f8c8d
 
 ******/
 
 /****** GENERAL STYLES ******/
 
-body.toplevel_page_iprm_main_page div#wpwrap, 
-body.podcast-reviews_page_iprm_premium_page div#wpwrap, 
-body.podcast-reviews_page_iprm_settings_page div#wpwrap {
-	background: #34495E;
+.toplevel_page_iprm_main_page div#wpwrap, 
+.podcast-reviews_page_iprm_premium_page div#wpwrap, 
+.podcast-reviews_page_iprm_settings_page div#wpwrap {
+	background: #34495e;
 	color: #333;
+	font-size: 0.9rem;
 }
-body.toplevel_page_iprm_main_page div#wpcontent, 
-body.podcast-reviews_page_iprm_premium_page div#wpcontent. 
-body.podcast-reviews_page_iprm_settings_page div#wpcontent {
+.toplevel_page_iprm_main_page div#wpcontent, 
+.podcast-reviews_page_iprm_premium_page div#wpcontent. 
+.podcast-reviews_page_iprm_settings_page div#wpcontent {
     padding-left: 0;
 }
-div.iprm {
-	max-width: 1200px;
+.iprm {
+	background: #34495e;
 	padding: 1rem;
+	width: 1200px;
 }
-div.iprm, div.iprm p {
-	font-size: 0.9rem;
+.iprm, 
+.iprm p {
+	font-size: 100%;
 	letter-spacing: 0.02rem;
 	line-height: 1.6;
 	margin: 0 0 1rem 0;
 }
 
+/****** NOTICES ******/
+
+.iprm-alert, 
+.iprm-notice {
+	color: #fff;
+	padding: 1rem;
+}
+.iprm-alert {
+	background: #e74c3c;
+}
+.iprm-notice {
+	background: #e67e22;
+}
+
 /****** NAVIGATION ******/
 
-div.iprm div.iprm-navigation {
+.iprm-navigation {
 	margin: 2rem 0 3rem 0;
 }
-div.iprm div.iprm-navigation a.dashicons-before {
-	border: 0.1rem solid #FFF;
-	color: #FFF;
+.iprm-navigation a.dashicons-before {
+	color: #fff;
 	padding: 1rem 0.8rem 1.2rem 0.6rem;
 }
-div.iprm div.iprm-navigation a.dashicons-before.current-page, 
-div.iprm div.iprm-navigation a.dashicons-before.current-page::before, 
-div.iprm div.iprm-navigation a.dashicons-before:hover {
-	background: #2980B9;
+.iprm-navigation a.dashicons-before.current-page, 
+.iprm-navigation a.dashicons-before.current-page::before, 
+.iprm-navigation a.dashicons-before:hover {
+	background: #2980b9;
 }
-div.iprm div.iprm-navigation a.dashicons-before::before {
+.iprm-navigation a.dashicons-before::before {
 	font-size: 2.0rem;
 	height: 2.0rem;
 	width: 2.0rem;
@@ -70,93 +86,118 @@ div.iprm div.iprm-navigation a.dashicons-before::before {
 
 /****** OTHER ******/
 
-div.iprm input {
-	background: #ECF0F1;
+p.submit {
+	padding: 0;
+}
+.iprm input {
+	background: #ecf0f1;
 	border: none;
 	box-shadow: none;
 	padding: 0.5rem;
 }
-div.iprm input[type="submit"] {
+.iprm input[type="submit"] {
 	border: none;
 	border-radius: 0;
+	color: #fff !important;
 	font-size: 1.2rem;
 	height: inherit;
 	line-height: 1.6;
 	padding: 0.5rem 1rem;
 	width: 100%;
 }
-div.iprm a {
+.iprm input[type="submit"].button-primary {
+	background: #3498db;
+}
+.iprm input[type="submit"].button-primary:hover {
+	background: #2980b9;
+}
+.iprm input[type="submit"].button-secondary {
+	background: #bdc3c7;
+}
+.iprm input[type="submit"].button-secondary:hover {
+	background: #95a5a6;
+}
+.iprm a {
+	border: none !important;
 	text-decoration: none;
 }
 
 /****** ICONS ******/
 
-div.iprm a span.dashicons, div.iprm a::before {
+.iprm a span.dashicons, 
+.iprm a::before {
 	text-decoration: none;
 	vertical-align: middle;
 }
-div.iprm div.iprm-sort-text {
+.iprm .iprm-sort-text {
 	display: inline-block;
 	vertical-align: middle;
 }
-div.iprm div.iprm-sort-icon {
+.iprm .iprm-sort-icon {
 	display: inline-block;
 	vertical-align: middle;
 }
-div.iprm div.iprm-sort-icon a span.dashicons {
-	color: #FFFFFF;
+.iprm .iprm-sort-icon a span.dashicons {
+	color: #fff;
 	font-size: 1.6rem;
 	height: 1.6rem;
 	width: 1.6rem;
 }
-div.iprm div.iprm-sort-icon a:hover span.dashicons {
-	color: #333333;
+.iprm .iprm-sort-icon a:hover span.dashicons {
+	color: #333;
 }
 
 /****** TABLES ******/
 
-div.iprm table {
+.iprm table {
 	border-spacing: 0;
 	margin-bottom: 2rem;
 	width: 100%;
 }
-div.iprm table th {
-	background: #27AE60;
-	color: #FFF;
-	font-weight: normal;
+.iprm th, 
+.iprm td {
+	border: 0;
 	padding: 1rem;
+}
+.iprm th {
+	background: #27ae60;
+	color: #fff;
+	font-weight: normal;
 	text-align: left;
 	text-transform: uppercase;
 	vertical-align: middle;
 	white-space: nowrap;
 }
-div.iprm table th.iprm-sort {
+.iprm th.iprm-sort {
 	text-align: right;
 }
-div.iprm table th.iprm-alt {
-	background: #2ECC71;
+.iprm th.iprm-alt {
+	background: #2ecc71;
 }
-div.iprm table th h2 {
-	color: #FFF;
+.iprm th h2 {
+	color: #fff;
 	font-size: 1.6rem;
     font-weight: 300;
     letter-spacing: 0.2rem;
     line-height: inherit;
     padding: 0;
 }
-div.iprm table tr:nth-child(even) td {
-    background: #FFF;
+.iprm tr:nth-child(even) td {
+    background: #fff;
 }
-div.iprm table td {
-	background: #ECF0F1;
-	padding: 1rem;
+.iprm td {
+	background: #ecf0f1;
 	vertical-align: top;
+}
+.iprm td.flag {
+	padding-top: 0.5rem;
 }
 
 /****** RESPONSIVE ******/
 
 @media only screen and (max-width: 767px) {
-	div.iprm table th, div.iprm table td {
+	.iprm th, 
+	.iprm td {
 		/*display: block;
 		white-space: normal;
 		width: 100%;/**/
